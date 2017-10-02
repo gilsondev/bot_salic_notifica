@@ -1,4 +1,5 @@
 import sys
+import sqlite3
 import time
 import telepot
 # import feedparser
@@ -13,6 +14,7 @@ from telegram.ext import Updater
 # j = u.job_queue
 
 def on_chat_message(msg):
+    conn=sqlite3.connect('salic.db')
     with urllib.request.urlopen("http://api.salic.cultura.gov.br/v1/projetos/?limit=1&sort=PRONAC:desc&format=json") as url:
         data = json.loads(url.read().decode('utf-8'))
     content_type, chat_type, chat_id = telepot.glance(msg)
@@ -29,6 +31,13 @@ def on_chat_message(msg):
     #CERTO ABAIXOOOO -------------------
     bot.sendMessage(chat_id, text=menssagem)
     # -------------------------
+    params =  (noticia['_embedded']['projetos'][0]['PRONAC'], noticia['_embedded']['projetos'][0]['nome'])
+    sql = ''' INSERT INTO salicBot(PRONAC, nome)
+                  VALUES(?,?)'''
+    curs = conn.cursor()
+    curs.execute(sql,params)
+    conn.commit()
+    conn.close()
 
 
     
