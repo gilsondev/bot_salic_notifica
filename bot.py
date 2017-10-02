@@ -1,23 +1,20 @@
 import sys
 import time
 import telepot
-import feedparser
+# import feedparser
 from telepot.loop import MessageLoop
 from telepot.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
 import urllib.request, json
 from urllib.request import urlopen
 from telegram.ext import Updater
 
-u = Updater('394913941:AAF0moTdE_d2-sAyv7kLO9GGV66SrViGJOc')
-j = u.job_queue
-
-with urllib.request.urlopen("http://api.salic.cultura.gov.br/v1/projetos/?limit=1&sort=PRONAC:desc&format=json") as url:
-    data = json.loads(url.read().decode('utf-8'))
-
-
-
+# Para testar o loop de enviar msg a cada 5min
+# u = Updater('394913941:AAF0moTdE_d2-sAyv7kLO9GGV66SrViGJOc')
+# j = u.job_queue
 
 def on_chat_message(msg):
+    with urllib.request.urlopen("http://api.salic.cultura.gov.br/v1/projetos/?limit=1&sort=PRONAC:desc&format=json") as url:
+        data = json.loads(url.read().decode('utf-8'))
     content_type, chat_type, chat_id = telepot.glance(msg)
 
     noticia = data
