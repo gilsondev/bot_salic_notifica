@@ -20,7 +20,7 @@ def on_chat_message(msg):
     content_type, chat_type, chat_id = telepot.glance(msg)
 
     noticia = data
-    menssagem ='Nome do Projeto: ' + noticia['_embedded']['projetos'][0]['nome'] +'\n'+ 'Pronac do Projeto: ' + noticia['_embedded']['projetos'][0]['PRONAC'] +'\n'+ 'Area do Projeto: ' + noticia['_embedded']['projetos'][0]['area'] +'\n'+ 'Resumo do Projeto: ' + noticia['_embedded']['projetos'][0]['resumo']
+    menssagem =  'Nova Proposta de #Projeto aceita pelo MinC:' + '\n\n' + 'Nome do Projeto: ' + noticia['_embedded']['projetos'][0]['nome'] +'\n\n'+ 'Pronac do Projeto: ' + noticia['_embedded']['projetos'][0]['PRONAC'] +'\n\n'+ 'Area do Projeto: ' + noticia['_embedded']['projetos'][0]['area'] +'\n\n'+ 'Segmento: ' + noticia['_embedded']['projetos'][0]['segmento'] + '\n\n'+ 'Cidade: '+ noticia['_embedded']['projetos'][0]['municipio']+'-'+ noticia['_embedded']['projetos'][0]['UF'] +'\n\n'+ 'Valor da Proposta: R$ '+ str(noticia['_embedded']['projetos'][0]['valor_proposta'])+'\n\n'+ 'Resumo do Projeto: ' + noticia['_embedded']['projetos'][0]['resumo'] +'\n\n'+ 'Acompanhe a execução deste projeto no Versalic em:\n' + 'http://versalic.cultura.gov.br/#/projetos/'+ noticia['_embedded']['projetos'][0]['PRONAC'] +'\n\n'+ 'Mais sobre a Lei Rouanet em Rouanet.cultura.gov.br'
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
                    [InlineKeyboardButton(text='Hit me up', callback_data='press')],
                ])
