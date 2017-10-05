@@ -29,15 +29,37 @@ def on_chat_message(msg):
     # job_minute = j.run_repeating(callback_minute, interval=10, first=0)
 
     #CERTO ABAIXOOOO -------------------
+
     bot.sendMessage(chat_id, text=menssagem)
     # -------------------------
-    params =  (noticia['_embedded']['projetos'][0]['PRONAC'], noticia['_embedded']['projetos'][0]['nome'])
-    sql = ''' INSERT INTO salicBot(PRONAC, nome)
-                  VALUES(?,?)'''
+
+
+    # params =  (noticia['_embedded']['projetos'][0]['PRONAC'], noticia['_embedded']['projetos'][0]['nome'])
+    # sql = ''' INSERT INTO salicBot(PRONAC, nome)
+    #               VALUES(?,?)'''
+    # curs = conn.cursor()
+    # curs.execute(sql,params)
+    # conn.commit()
+    # conn.close()
+
+
+    # TENTANDO RESOLVER PROBLEMA DE ATUALIZAR O BANCO
+    # -----------------
+    params =  (noticia['_embedded']['projetos'][0]['PRONAC'],noticia['_embedded']['projetos'][0]['PRONAC'])
+    sql1 = 'UPDATE salicBot SET PRONAC = ? WHERE PRONAC < ?'
     curs = conn.cursor()
-    curs.execute(sql,params)
+    curs.execute(sql1,params)
     conn.commit()
-    conn.close()
+    conn.close()   
+
+    # if (sql1 < noticia['_embedded']['projetos'][0]['PRONAC']):
+    
+    # curs = conn.cursor() 
+    # curs.execute('UPDATE salicBot SET PRONAC =? ',[noticia['_embedded']['projetos'][0]['PRONAC']],)
+    # conn.commit()
+    # conn.close()
+
+
 
 
     
