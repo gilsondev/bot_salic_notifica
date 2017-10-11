@@ -17,12 +17,6 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 
-# Define a few command handlers. These usually take the two arguments bot and
-# update. Error handlers also receive the raised TelegramError object in error.
-def start(bot, update):
-    update.message.reply_text('Hi! Use /set <minutes> to set a timer')
-
-
 def alarm(bot, job):
     conn=sqlite3.connect('salic.db')
     """Function to send the alarm message"""
@@ -59,12 +53,13 @@ def alarm(bot, job):
     # bot.send_message(job.context, text='Beep!')
 
 
-def set(bot, update, args, job_queue, chat_data):
+def set(bot, update, job_queue, chat_data):
     """Adds a job to the queue"""
-    chat_id = update.message.chat_id
+    # chat_id = update.message.chat_id
+    chat_id = '@projetosMinc'
     try:
         # args[0] should contain the time for the timer in seconds
-        due = int(args[0]) #* 60 #essa multiplicação é para tornar em minutos!!!!!
+        due = 1 #* 60 #essa multiplicação é para tornar em minutos!!!!!
         if due < 0:
             update.message.reply_text('Sorry we can not go back to future!')
             return
@@ -73,24 +68,10 @@ def set(bot, update, args, job_queue, chat_data):
         job = job_queue.run_repeating(alarm, due, context=chat_id)
         chat_data['job'] = job
 
-        update.message.reply_text('Timer successfully set!')
+        update.message.reply_text('Agora você receberá os Projetos aprovados do Salic')
 
     except (IndexError, ValueError):
-        update.message.reply_text('Usage: /set <minutes>')
-
-
-def unset(bot, update, chat_data):
-    """Removes the job if the user changed their mind"""
-
-    if 'job' not in chat_data:
-        update.message.reply_text('You have no active timer')
-        return
-
-    job = chat_data['job']
-    job.schedule_removal()
-    del chat_data['job']
-
-    update.message.reply_text('Timer successfully unset!')
+        update.message.reply_text('Usage: /start')
 
 
 def error(bot, update, error):
@@ -104,13 +85,11 @@ def main():
     dp = updater.dispatcher
 
     # on different commands - answer in Telegram
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(CommandHandler("help", start))
-    dp.add_handler(CommandHandler("set", set,
-                                  pass_args=True,
+
+    dp.add_handler(CommandHandler("start", set,
                                   pass_job_queue=True,
                                   pass_chat_data=True))
-    dp.add_handler(CommandHandler("unset", unset, pass_chat_data=True))
+
 
     # log all errors
     dp.add_error_handler(error)
@@ -126,4 +105,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    
