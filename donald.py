@@ -79,7 +79,7 @@ def error(bot, update, error):
 
 
 def main():
-    updater = Updater("394913941:AAF0moTdE_d2-sAyv7kLO9GGV66SrViGJOc")
+    updater = Updater(sys.arg[0])
 
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
