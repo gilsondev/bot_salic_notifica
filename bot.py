@@ -10,7 +10,7 @@ from urllib.request import urlopen
 from telegram.ext import Updater
 
 # Para testar o loop de enviar msg a cada 5min
-# u = Updater('394913941:AAF0moTdE_d2-sAyv7kLO9GGV66SrViGJOc')
+# u = Updater('sys.arg[0]')
 # j = u.job_queue
 
 def on_chat_message(msg):
