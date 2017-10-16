@@ -63,7 +63,7 @@ def on_chat_message(msg):
 
 
     
-TOKEN = '394913941:AAF0moTdE_d2-sAyv7kLO9GGV66SrViGJOc'  # get token from command-line
+TOKEN = sys.arg[0]  # get token from command-line
 
 bot = telepot.Bot(TOKEN)
 MessageLoop(bot, {'chat': on_chat_message}).run_as_thread()
