@@ -57,7 +57,7 @@ O arquivo pode ser baixado de forma direta e rápida utilizando o comando wget -
     ```
 5. Clone o repositório do projeto do github
     ```
-    git clone https://github.com/ShinNin-chan/bot_salic_pojetoaprovado_notificia.git
+    git clone https://github.com/ShinNin-chan/bot_salic_notifica.git
 
     ```
 
