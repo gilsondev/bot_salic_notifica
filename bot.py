@@ -80,7 +80,7 @@ def set(bot, update, job_queue, chat_data):
 
 
 def main():
-    updater = Updater("422044318:AAGdz7ZakuwtP3A1mnrE3_0SZvfvEpkmOFA")
+    updater = Updater(sys.argv[0])
 
 
     dp = updater.dispatcher
