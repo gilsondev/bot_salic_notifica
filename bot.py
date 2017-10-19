@@ -9,30 +9,29 @@ from urllib.request import urlopen
 from telegram.ext import Updater, CommandHandler, Job
 import logging
 
-
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 
-
 logger = logging.getLogger(__name__)
 
+checkExist = '[(0,), (0,), (0,), (0,), (0,), (0,), (0,), (0,), (0,), (0,), (0,), (0,), (0,), (0,), (0,)]'
 
 def alarm(bot, job):
-    conn=sqlite3.connect('teste.db')
+    conn=sqlite3.connect('bot.db')
     
-    with urllib.request.urlopen("http://api.salic.cultura.gov.br/v1/projetos/?limit=3&sort=PRONAC:desc&format=json") as url:
+    with urllib.request.urlopen("http://api.salic.cultura.gov.br/v1/projetos/?limit=15&sort=PRONAC:desc&format=json") as url:
         data = json.loads(url.read().decode('utf-8'))
     
     array = ([])
     noticia = data 
     
-    for i in range(3):
+    for i in range(15):
         array.append(noticia['_embedded']['projetos'][i]['PRONAC'])
     
 
-    y = (0,1,2)
+    y = (0,1,2,3,4,5,6,7,8,9,10,11,12,13,14)
     for x in reversed(y):
-        print (x)
+        
         menssagem =  'Nova Proposta de #Projeto aceita pelo MinC:' + '\n\n' + 'Nome do Projeto: ' + noticia['_embedded']['projetos'][x]['nome'] +'\n\n'+ 'Pronac do Projeto: ' + noticia['_embedded']['projetos'][x]['PRONAC'] +'\n\n'+ 'Area do Projeto: ' + noticia['_embedded']['projetos'][x]['area'] +'\n\n'+ 'Segmento: ' + noticia['_embedded']['projetos'][x]['segmento'] + '\n\n'+ 'Cidade: '+ noticia['_embedded']['projetos'][x]['municipio']+'-'+ noticia['_embedded']['projetos'][x]['UF'] +'\n\n'+ 'Valor da Proposta: R$ '+ str(noticia['_embedded']['projetos'][x]['valor_proposta'])+'\n\n'+ 'Resumo do Projeto: ' + noticia['_embedded']['projetos'][x]['resumo'] +'\n\n'+ 'Acompanhe a execução deste projeto no Versalic em:\n' + 'http://versalic.cultura.gov.br/#/projetos/'+ noticia['_embedded']['projetos'][x]['PRONAC'] +'\n\n'+ 'Mais sobre a Lei Rouanet em Rouanet.cultura.gov.br'
         params =  (noticia['_embedded']['projetos'][x]['PRONAC'],)
         
@@ -42,10 +41,10 @@ def alarm(bot, job):
         teste2 = curs.fetchall()
         teste3 = curs.fetchone()
         
-        if str('[(0,), (0,), (0,)]') == str(teste2):
-            print ('certo')
+        if checkExist == str(teste2):
+            
             bot.sendMessage(job.context, text=menssagem)
-    for p in range(3):
+    for p in range(15):
 
         params1 =  (noticia['_embedded']['projetos'][p]['PRONAC'],(p+1))
         sql1 = 'UPDATE salicBot SET PRONAC = ? WHERE id = ?'
@@ -60,13 +59,13 @@ def alarm(bot, job):
 
 def set(bot, update, job_queue, chat_data):
 
-    chat_id = update.message.chat_id
-    # chat_id = '@projetosMinc'
+    chat_id = sys.arg[0]
+
     try:
         
         due = 1 #* 60 #essa multiplicação é para tornar em minutos!!!!!
         if due < 0:
-            update.message.reply_text('Sorry we can not go back to future!')
+            update.message.reply_text('Não podemos ir para o futuro!')
             return
 
         
@@ -76,11 +75,13 @@ def set(bot, update, job_queue, chat_data):
         update.message.reply_text('Agora você receberá os Projetos aprovados do Salic no Canal @projetosMinc')
 
     except (IndexError, ValueError):
-        update.message.reply_text('Usage: /start')
+        update.message.reply_text('Use: /start')
 
 
 def main():
-    updater = Updater(sys.argv[0])
+
+    updater = Updater(sys.arg[1])
+
 
 
     dp = updater.dispatcher
@@ -92,7 +93,7 @@ def main():
                                   pass_chat_data=True))
 
 
-    updater.start_polling()
+    updater.start_polling(timeout=240,clean=False)
 
     updater.idle()
 
