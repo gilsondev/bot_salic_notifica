@@ -1,3 +1,4 @@
+import os
 import sys
 import sqlite3
 import time
@@ -59,7 +60,7 @@ def alarm(bot, job):
 
 def set(bot, update, job_queue, chat_data):
 
-    chat_id = sys.arg[0]
+    chat_id = update.message.chat_id
 
     try:
         
@@ -80,7 +81,7 @@ def set(bot, update, job_queue, chat_data):
 
 def main():
 
-    updater = Updater(sys.arg[1])
+    updater = Updater(os.environ.get('token'))
 
 
 
