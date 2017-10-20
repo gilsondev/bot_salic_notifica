@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import os
 import sys
 import sqlite3
 import time
@@ -111,7 +112,7 @@ def alarm(bot, job):
 
 def start(bot, update, job_queue, chat_data):
 
-    chat_id = sys.argv[2]
+    chat_id = update.message.chat_id
 
     try:
 
@@ -135,7 +136,7 @@ def start(bot, update, job_queue, chat_data):
 
 def main():
 
-    updater = Updater(sys.argv[1])
+    updater = Updater(os.environ.get('SALIC_BOT_TOKEN'))
 
     dispatcher = updater.dispatcher
     dispatcher.add_handler(CommandHandler("start", start,
