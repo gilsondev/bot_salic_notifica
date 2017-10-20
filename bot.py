@@ -11,6 +11,7 @@ import logging
 
 from urllib.request import urlopen
 
+from money import Money
 from telepot.loop import MessageLoop
 from telepot.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import Updater, CommandHandler, Job
@@ -45,6 +46,11 @@ def _fetch_projects():
     return noticia
 
 
+def _format_money(price):
+    project_money = Money(amount=price, currency='BRL')
+    return project_money.format('pt_BR', 'R$ #,##0.00')
+
+
 def alarm(bot, job):
     conn = sqlite3.connect('bot.db')
 
@@ -66,7 +72,7 @@ def alarm(bot, job):
 
         *Cidade*: {cidade} - {estado}
 
-        *Valor da Proposta*: `R$ {valor_proposta}`
+        *Valor da Proposta*: `{valor_proposta}`
 
         *Resumo do Projeto*: {resumo_projeto}
 
@@ -83,7 +89,7 @@ def alarm(bot, job):
             segmento=projeto['segmento'],
             cidade=projeto['municipio'],
             estado=projeto['UF'],
-            valor_proposta=projeto['valor_proposta'],
+            valor_proposta=_format_money(projeto['valor_proposta']),
             resumo_projeto=projeto['resumo']
         )
 
