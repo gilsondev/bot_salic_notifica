@@ -1,78 +1,133 @@
+# -*- coding: utf-8 -*-
+
 import sys
 import sqlite3
 import time
 import telepot
-from telepot.loop import MessageLoop
-from telepot.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
-import urllib.request, json
-from urllib.request import urlopen
-from telegram.ext import Updater, CommandHandler, Job
+import json
+import urllib.request
 import logging
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
+from urllib.request import urlopen
+
+from telepot.loop import MessageLoop
+from telepot.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.ext import Updater, CommandHandler, Job
+from telegram import ParseMode
+
+
+SALIC_API_URI = "http://api.salic.cultura.gov.br/v1/"
+PROJECTS_RESOURCE = "{0}projetos?limit=15&sort=PRONAC:desc&format=json".format(
+    SALIC_API_URI
+)
+POSICOES = range(15)
+
+
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
 
 logger = logging.getLogger(__name__)
 
-checkExist = '[(0,), (0,), (0,), (0,), (0,), (0,), (0,), (0,), (0,), (0,), (0,), (0,), (0,), (0,), (0,)]'
+checkExist = '[(0,), (0,), (0,), (0,), (0,), (0,), (0,), (0,), (0,), '
+'(0,), (0,), (0,), (0,), (0,), (0,)]'
+
+
+def _fetch_projects():
+    noticia = {}
+    logger.info("Acessando recurso de projetos")
+    with urllib.request.urlopen(PROJECTS_RESOURCE) as url:
+        noticia = json.loads(url.read().decode('utf-8'))
+        logger.debug("Projetos solicitados")
+
+    return noticia
+
 
 def alarm(bot, job):
-    conn=sqlite3.connect('bot.db')
-    
-    with urllib.request.urlopen("http://api.salic.cultura.gov.br/v1/projetos/?limit=15&sort=PRONAC:desc&format=json") as url:
-        data = json.loads(url.read().decode('utf-8'))
-    
-    array = ([])
-    noticia = data 
-    
-    for i in range(15):
-        array.append(noticia['_embedded']['projetos'][i]['PRONAC'])
-    
+    conn = sqlite3.connect('bot.db')
 
-    y = (0,1,2,3,4,5,6,7,8,9,10,11,12,13,14)
-    for x in reversed(y):
+    projetos = _fetch_projects()
+
+    for posicao in reversed(POSICOES):
+        projeto = projetos['_embedded']['projetos'][posicao]
+
+        mensagem = """
+        Nova Proposta de #Projeto aceita pelo MinC:
+
+        *Nome do Projeto*: {projeto}
+
+        *Pronac do Projeto*: {pronac}
+
+        *Area do Projeto*: {area}
+
+        *Segmento*: {segmento}
+
+        *Cidade*: {cidade} - {estado}
+
+        *Valor da Proposta*: `R$ {valor_proposta}`
+
+        *Resumo do Projeto*: {resumo_projeto}
+
+        Acompanhe a execução deste projeto no *Versalic* em:
+        http://versalic.cultura.gov.br/#/projetos/{pronac}
+
+        Mais sobre a *Lei Rouanet* em:
+        http://rouanet.cultura.gov.br
         
-        menssagem =  'Nova Proposta de #Projeto aceita pelo MinC:' + '\n\n' + 'Nome do Projeto: ' + noticia['_embedded']['projetos'][x]['nome'] +'\n\n'+ 'Pronac do Projeto: ' + noticia['_embedded']['projetos'][x]['PRONAC'] +'\n\n'+ 'Area do Projeto: ' + noticia['_embedded']['projetos'][x]['area'] +'\n\n'+ 'Segmento: ' + noticia['_embedded']['projetos'][x]['segmento'] + '\n\n'+ 'Cidade: '+ noticia['_embedded']['projetos'][x]['municipio']+'-'+ noticia['_embedded']['projetos'][x]['UF'] +'\n\n'+ 'Valor da Proposta: R$ '+ str(noticia['_embedded']['projetos'][x]['valor_proposta'])+'\n\n'+ 'Resumo do Projeto: ' + noticia['_embedded']['projetos'][x]['resumo'] +'\n\n'+ 'Acompanhe a execução deste projeto no Versalic em:\n' + 'http://versalic.cultura.gov.br/#/projetos/'+ noticia['_embedded']['projetos'][x]['PRONAC'] +'\n\n'+ 'Mais sobre a Lei Rouanet em Rouanet.cultura.gov.br'
-        params =  (noticia['_embedded']['projetos'][x]['PRONAC'],)
-        
+        """.format(
+            projeto=projeto['nome'],
+            pronac=projeto['PRONAC'],
+            area=projeto['area'],
+            segmento=projeto['segmento'],
+            cidade=projeto['municipio'],
+            estado=projeto['UF'],
+            valor_proposta=projeto['valor_proposta'],
+            resumo_projeto=projeto['resumo']
+        )
+
+        params = (projeto['PRONAC'],)
+
         sql = 'SELECT PRONAC = ? FROM salicBot WHERE cod = 1'
-        curs = conn.cursor()
-        teste = curs.execute(sql,params)
-        teste2 = curs.fetchall()
-        teste3 = curs.fetchone()
-        
-        if checkExist == str(teste2):
-            
-            bot.sendMessage(job.context, text=menssagem)
-    for p in range(15):
+        cursor = conn.cursor()
+        teste = cursor.execute(sql, params)
+        teste2 = cursor.fetchall()
+        teste3 = cursor.fetchone()
 
-        params1 =  (noticia['_embedded']['projetos'][p]['PRONAC'],(p+1))
-        sql1 = 'UPDATE salicBot SET PRONAC = ? WHERE id = ?'
-        curs = conn.cursor()
-        curs.execute(sql1,params1)
+        if checkExist == str(teste2):
+            logger.debug("Exibindo mensagem...")
+            bot.sendMessage(job.context, text=mensagem,
+                            parse_mode=ParseMode.MARKDOWN)
+
+    for posicao_atual in POSICOES:
+        params = (projeto['PRONAC'], (posicao_atual + 1))
+        update_salicbot_sql = 'UPDATE salicBot SET PRONAC = ? WHERE id = ?'
+        cursor = conn.cursor()
+        cursor.execute(update_salicbot_sql, params)
         conn.commit()
-      
 
     conn.close()
 
 
+def start(bot, update, job_queue, chat_data):
 
-def set(bot, update, job_queue, chat_data):
-
-    chat_id = sys.arg[0]
+    chat_id = sys.argv[2]
 
     try:
-        
-        due = 1 #* 60 #essa multiplicação é para tornar em minutos!!!!!
+
+        due = 1  # * 60 #essa multiplicação é para tornar em minutos!!!!!
         if due < 0:
             update.message.reply_text('Não podemos ir para o futuro!')
             return
 
-        
+        logger.debug("Iniciando job...")
         job = job_queue.run_repeating(alarm, due, context=chat_id)
         chat_data['job'] = job
 
-        update.message.reply_text('Agora você receberá os Projetos aprovados do Salic no Canal @projetosMinc')
+        update.message.reply_text(
+            'Agora você receberá os Projetos aprovados '
+            'do Salic no Canal @projetosMinc'
+        )
 
     except (IndexError, ValueError):
         update.message.reply_text('Use: /start')
@@ -80,21 +135,14 @@ def set(bot, update, job_queue, chat_data):
 
 def main():
 
-    updater = Updater(sys.arg[1])
+    updater = Updater(sys.argv[1])
 
+    dispatcher = updater.dispatcher
+    dispatcher.add_handler(CommandHandler("start", start,
+                                          pass_job_queue=True,
+                                          pass_chat_data=True))
 
-
-    dp = updater.dispatcher
-
-
-
-    dp.add_handler(CommandHandler("start", set,
-                                  pass_job_queue=True,
-                                  pass_chat_data=True))
-
-
-    updater.start_polling(timeout=240,clean=False)
-
+    updater.start_polling(timeout=240, clean=False)
     updater.idle()
 
 
