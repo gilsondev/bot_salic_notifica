@@ -95,6 +95,8 @@ def alarm(bot, job):
         teste2 = cursor.fetchall()
         teste3 = cursor.fetchone()
 
+        bot.sendMessage(job.context, text=mensagem,
+                        parse_mode=ParseMode.MARKDOWN)
         if checkExist == str(teste2):
             logger.debug("Exibindo mensagem...")
             bot.sendMessage(job.context, text=mensagem,
