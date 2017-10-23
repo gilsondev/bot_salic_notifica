@@ -1,136 +1,82 @@
-# -*- coding: utf-8 -*-
-
 import os
 import sys
 import sqlite3
 import time
 import telepot
-import json
-import urllib.request
-import logging
-
-from urllib.request import urlopen
-
 from telepot.loop import MessageLoop
 from telepot.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
+import urllib.request, json
+from urllib.request import urlopen
 from telegram.ext import Updater, CommandHandler, Job
-from telegram import ParseMode
+import logging
 
-
-SALIC_API_URI = "http://api.salic.cultura.gov.br/v1/"
-PROJECTS_RESOURCE = "{0}projetos?limit=15&sort=PRONAC:desc&format=json".format(
-    SALIC_API_URI
-)
-POSICOES = range(15)
-
-
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    level=logging.INFO)
 
 logger = logging.getLogger(__name__)
 
-checkExist = '[(0,), (0,), (0,), (0,), (0,), (0,), (0,), (0,), (0,), '
-'(0,), (0,), (0,), (0,), (0,), (0,)]'
-
-
-def _fetch_projects():
-    noticia = {}
-    logger.info("Acessando recurso de projetos")
-    with urllib.request.urlopen(PROJECTS_RESOURCE) as url:
-        noticia = json.loads(url.read().decode('utf-8'))
-        logger.debug("Projetos solicitados")
-
-    return noticia
-
-
+checkExist = '[(0,), (0,), (0,), (0,), (0,), (0,), (0,), (0,), (0,), (0,), (0,), (0,), (0,), (0,), (0,)]'
+# Função que contém o algoritmo para pegar o buffer de PRONACs e fazer conferência se ja existem
 def alarm(bot, job):
-    conn = sqlite3.connect('bot.db')
+    # fazendo conexão com banco de dados
+    conn=sqlite3.connect('bot.db')
+    # Coletando da API do salic as informações dos ultimos PRONCAs
+    with urllib.request.urlopen("http://api.salic.cultura.gov.br/v1/projetos/?limit=15&sort=PRONAC:desc&format=json") as url:
+        data = json.loads(url.read().decode('utf-8'))
+    
+    array = ([])
+    noticia = data 
+    # Colocando os dados recebidos da API em um array 
+    for i in range(15):
+        array.append(noticia['_embedded']['projetos'][i]['PRONAC'])
+    
 
-    projetos = _fetch_projects()
-
-    for posicao in reversed(POSICOES):
-        projeto = projetos['_embedded']['projetos'][posicao]
-
-        mensagem = """
-        Nova Proposta de #Projeto aceita pelo MinC:
-
-        *Nome do Projeto*: {projeto}
-
-        *Pronac do Projeto*: {pronac}
-
-        *Area do Projeto*: {area}
-
-        *Segmento*: {segmento}
-
-        *Cidade*: {cidade} - {estado}
-
-        *Valor da Proposta*: `R$ {valor_proposta}`
-
-        *Resumo do Projeto*: {resumo_projeto}
-
-        Acompanhe a execução deste projeto no *Versalic* em:
-        http://versalic.cultura.gov.br/#/projetos/{pronac}
-
-        Mais sobre a *Lei Rouanet* em:
-        http://rouanet.cultura.gov.br
+    y = (0,1,2,3,4,5,6,7,8,9,10,11,12,13,14)
+    # Laço feito para conferência se há novidades e então mandar a mensagem do bot
+    for x in reversed(y):
         
-        """.format(
-            projeto=projeto['nome'],
-            pronac=projeto['PRONAC'],
-            area=projeto['area'],
-            segmento=projeto['segmento'],
-            cidade=projeto['municipio'],
-            estado=projeto['UF'],
-            valor_proposta=projeto['valor_proposta'],
-            resumo_projeto=projeto['resumo']
-        )
-
-        params = (projeto['PRONAC'],)
-
+        menssagem =  'Nova Proposta de #Projeto aceita pelo MinC:' + '\n\n' + 'Nome do Projeto: ' + noticia['_embedded']['projetos'][x]['nome'] +'\n\n'+ 'Pronac do Projeto: ' + noticia['_embedded']['projetos'][x]['PRONAC'] +'\n\n'+ 'Area do Projeto: ' + noticia['_embedded']['projetos'][x]['area'] +'\n\n'+ 'Segmento: ' + noticia['_embedded']['projetos'][x]['segmento'] + '\n\n'+ 'Cidade: '+ noticia['_embedded']['projetos'][x]['municipio']+'-'+ noticia['_embedded']['projetos'][x]['UF'] +'\n\n'+ 'Valor da Proposta: R$ '+ str(noticia['_embedded']['projetos'][x]['valor_proposta'])+'\n\n'+ 'Resumo do Projeto: ' + noticia['_embedded']['projetos'][x]['resumo'] +'\n\n'+ 'Acompanhe a execução deste projeto no Versalic em:\n' + 'http://versalic.cultura.gov.br/#/projetos/'+ noticia['_embedded']['projetos'][x]['PRONAC'] +'\n\n'+ 'Mais sobre a Lei Rouanet em Rouanet.cultura.gov.br'
+        params =  (noticia['_embedded']['projetos'][x]['PRONAC'],)
+        
         sql = 'SELECT PRONAC = ? FROM salicBot WHERE cod = 1'
-        cursor = conn.cursor()
-        teste = cursor.execute(sql, params)
-        teste2 = cursor.fetchall()
-        teste3 = cursor.fetchone()
+        curs = conn.cursor()
+        teste = curs.execute(sql,params)
+        teste2 = curs.fetchall()
 
-        bot.sendMessage(job.context, text=mensagem,
-                        parse_mode=ParseMode.MARKDOWN)
+        # Verificando se existe no Banco
         if checkExist == str(teste2):
-            logger.debug("Exibindo mensagem...")
-            bot.sendMessage(job.context, text=mensagem,
-                            parse_mode=ParseMode.MARKDOWN)
+            
+            bot.sendMessage(job.context, text=menssagem)
+    # Laço feito para guardar no banco a ultima atualização da API para criação de um buffer
+    for p in range(15):
 
-    for posicao_atual in POSICOES:
-        params = (projeto['PRONAC'], (posicao_atual + 1))
-        update_salicbot_sql = 'UPDATE salicBot SET PRONAC = ? WHERE id = ?'
-        cursor = conn.cursor()
-        cursor.execute(update_salicbot_sql, params)
+        params1 =  (noticia['_embedded']['projetos'][p]['PRONAC'],(p+1))
+        sql1 = 'UPDATE salicBot SET PRONAC = ? WHERE id = ?'
+        curs = conn.cursor()
+        curs.execute(sql1,params1)
         conn.commit()
+      
 
     conn.close()
 
 
-def start(bot, update, job_queue, chat_data):
+# Função onde é feita a conta do tempo de quando a função que manda mensagem será chamada
+def set(bot, update, job_queue, chat_data):
 
     chat_id = update.message.chat_id
 
     try:
-
-        due = 1  # * 60 #essa multiplicação é para tornar em minutos!!!!!
+        
+        due = 1 #* 60 #essa multiplicação é para tornar em minutos!!!!!
         if due < 0:
             update.message.reply_text('Não podemos ir para o futuro!')
             return
 
-        logger.debug("Iniciando job...")
+        
         job = job_queue.run_repeating(alarm, due, context=chat_id)
         chat_data['job'] = job
 
-        update.message.reply_text(
-            'Agora você receberá os Projetos aprovados '
-            'do Salic no Canal @projetosMinc'
-        )
+        update.message.reply_text('Agora você receberá os Projetos aprovados do Salic no Canal @projetosMinc')
 
     except (IndexError, ValueError):
         update.message.reply_text('Use: /start')
@@ -138,16 +84,24 @@ def start(bot, update, job_queue, chat_data):
 
 def main():
 
-    updater = Updater(os.environ.get('SALIC_BOT_TOKEN'))
+    updater = Updater(os.environ.get('token'))
 
-    dispatcher = updater.dispatcher
-    dispatcher.add_handler(CommandHandler("start", start,
-                                          pass_job_queue=True,
-                                          pass_chat_data=True))
 
-    updater.start_polling(timeout=240, clean=False)
+
+    dp = updater.dispatcher
+
+
+
+    dp.add_handler(CommandHandler("start", set,
+                                  pass_job_queue=True,
+                                  pass_chat_data=True))
+
+
+    updater.start_polling(timeout=240,clean=False)
+
     updater.idle()
 
 
 if __name__ == '__main__':
     main()
+
